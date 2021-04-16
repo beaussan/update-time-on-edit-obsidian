@@ -1,10 +1,10 @@
 {
   "id": "update-time-on-edit",
   "name": "Update time on edit",
-  "version": "1.0.1",
-  "minAppVersion": "0.9.12",
-  "description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
-  "author": "Obsidian",
-  "authorUrl": "https://obsidian.md/about",
+  "version": "1.0.0",
+  "minAppVersion": "0.10.11",
+  "description": "Keep the updated front matter header in sync with the last edit",
+  "author": "@beaussan",
+  "authorUrl": "https://github.com/beaussan",
   "isDesktopOnly": false
 }
