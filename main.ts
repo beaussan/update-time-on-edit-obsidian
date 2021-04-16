@@ -1,56 +1,77 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+import matter from 'gray-matter';
+import { add, parse, formatRFC3339, isAfter, parseISO } from 'date-fns';
 
 interface MyPluginSettings {
-	mySetting: string;
+	header: string;
+	minMinutesBetweenSaves: number;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+	header: 'updated',
+	minMinutesBetweenSaves: 1,
 }
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
+	parseDate(input: string | Date | undefined): Date {
+		if (!input) {
+			return new Date(0);
+		}
+		if (input instanceof Date) {
+			return input;
+		}
+		const oldFormat = 'yyyy-MM-dd HH:mm-ssxxx';
+		if (input.contains('T')) {
+			return new Date(input)
+		}
+		return parse(input, oldFormat, new Date());
+	}
+
 	async onload() {
-		console.log('loading plugin');
+		console.log('loading Update time on edit plugin');
 
 		await this.loadSettings();
 
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
-		});
-
-		this.addStatusBarItem().setText('Status Bar Text');
-
-		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-					return true;
-				}
-				return false;
+		this.app.vault.on('modify', async (file) => {
+			const oldText =  (file as any).unsafeCachedData;
+			if (!oldText) {
+				return;
 			}
-		});
+			const { content, data } = matter(oldText);
+			data.updated = this.parseDate(data.updated);
+			data.created = data.created ? this.parseDate(data.created) : new Date();
+
+
+			const nMinutesAgo = add(new Date(), { minutes: -this.settings.minMinutesBetweenSaves });
+			const shouldEdit = isAfter(nMinutesAgo, data.updated)
+			
+			if (!shouldEdit) {
+				console.log('Not soon enouth, will update latter');
+				return;
+			}
+
+			data.created = formatRFC3339(data.created);
+			data.updated = formatRFC3339(new Date());
+
+
+			const newData = matter.stringify(content, data);
+
+			console.log(newData);
+
+			const fileToSave = this.app.vault.getFiles().find(inFile => inFile.path === file.path);
+			
+			console.log(fileToSave);
+			console.log(file.path);
+
+			await this.app.vault.modify(fileToSave, newData);
+			console.log('Updated !');
+		})
+
+		
 
 		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
-
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
 	onunload() {
@@ -66,21 +87,6 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
-	}
-}
 
 class SampleSettingTab extends PluginSettingTab {
 	plugin: MyPlugin;
@@ -95,18 +101,30 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('Front matter name')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
+				.setPlaceholder('updated')
+				.setValue(this.plugin.settings.header ?? '')
 				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.header = value;
 					await this.plugin.saveSettings();
 				}));
+		
+		new Setting(containerEl)
+			.setName('Excluded folder')
+			.addSearch(search => search)
+
+		new Setting(containerEl)
+			.setName('Min minutes between update')
+			.addSlider(slider => slider
+				.setLimits(1, 30, 1)
+				.setValue(this.plugin.settings.minMinutesBetweenSaves)
+				.onChange(async value => {
+					this.plugin.settings.minMinutesBetweenSaves = value;
+					await this.plugin.saveSettings();
+				}).setDynamicTooltip()
+				)
+				;
 	}
 }
