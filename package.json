@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-sample-plugin",
+  "name": "obsidian-update-time-on-edit",
   "version": "1.0.0",
-  "description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+  "description": "Keep the updated front matter header in sync with the last edit",
   "main": "main.js",
   "scripts": {
     "dev": "rollup --config rollup.config.js -w",
@@ -10,7 +10,7 @@
     "format:check": "prettier --list-different \"**/*.{ts,json}\""
   },
   "keywords": [],
-  "author": "",
+  "author": "@beaussan",
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^18.0.0",

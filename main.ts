@@ -1,6 +1,6 @@
 import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import matter from 'gray-matter';
-import { add, parse, formatRFC3339, isAfter } from 'date-fns';
+import { add, formatRFC3339, isAfter } from 'date-fns';
 
 interface UpdateTimeOnEditSettings {
   headerUpdated: string;
@@ -40,7 +40,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     if (!this.settings.ignoreFolder) {
       return false;
     }
-    return !path.startsWith(this.settings.ignoreFolder);
+    return path.startsWith(this.settings.ignoreFolder);
   }
 
   shouldUpdateValue(date: Date): boolean {
@@ -51,13 +51,17 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   }
 
   setupOnEditHandler() {
+    this.log('Setup handler');
     this.app.vault.on('modify', async (file) => {
+      this.log('on triggered');
       const oldText = (file as any).unsafeCachedData;
       if (!oldText) {
+        this.log('No cashed data');
         return;
       }
 
       if (this.shouldFileBeIgnored(file.path)) {
+        this.log('Ignored file');
         return;
       }
 
