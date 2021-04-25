@@ -1,6 +1,15 @@
-import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import matter from 'gray-matter';
 import { add, formatRFC3339, isAfter } from 'date-fns';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import {
+  debounceTime,
+  filter,
+  groupBy,
+  map,
+  mergeMap,
+  tap,
+} from 'rxjs/operators';
 
 interface UpdateTimeOnEditSettings {
   headerUpdated: string;
@@ -19,6 +28,8 @@ const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
 export default class UpdateTimeOnSavePlugin extends Plugin {
   settings: UpdateTimeOnEditSettings;
 
+  fileUpdates$ = new Subject<string>();
+
   parseDate(input: string | Date): Date {
     if (input instanceof Date) {
       return input;
@@ -32,6 +43,8 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     await this.loadSettings();
 
     this.setupOnEditHandler();
+
+    this.listenOnNewUpdates();
 
     this.addSettingTab(new UpdateTimeOnEditSettingsTab(this.app, this));
   }
@@ -50,53 +63,71 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return isAfter(nMinutesAgo, date);
   }
 
+  listenOnNewUpdates() {
+    this.fileUpdates$
+      .asObservable()
+      .pipe(
+        filter((path) => !!path),
+        groupBy((value) => value),
+        mergeMap((group) => group.pipe(debounceTime(3000))),
+        filter((path) => !this.shouldFileBeIgnored(path)),
+        map((path) =>
+          this.app.vault.getFiles().find((inFile) => inFile.path === path),
+        ),
+        filter((file) => !!file),
+        tap((file) => {
+          this.log(`Triggered for ${file.path}`);
+        }),
+      )
+      .subscribe((file) => this.updateHeaderIfNeeded(file));
+  }
+
+  async updateHeaderIfNeeded(file: TFile): Promise<void> {
+    const oldContent = await this.app.vault.read(file);
+    if (!oldContent) {
+      this.log('No content');
+      return;
+    }
+
+    const { content, data } = matter(oldContent);
+
+    const updatedKey = this.settings.headerUpdated;
+    const createdKey = this.settings.headerCreated;
+
+    // Set the creation date as now if there is no entry in the front matter
+    data[createdKey] = data[createdKey]
+      ? this.parseDate(data[createdKey])
+      : new Date();
+
+    // Set the update date as epoch if there is no entry in the front matter
+    data[updatedKey] = data[updatedKey]
+      ? this.parseDate(data[updatedKey])
+      : new Date(0);
+
+    if (!this.shouldUpdateValue(data[updatedKey])) {
+      this.log('Not soon enough, will update latter');
+      return;
+    }
+
+    data[createdKey] = formatRFC3339(data[createdKey]);
+    data[updatedKey] = formatRFC3339(new Date());
+
+    const newData = matter.stringify(content, data);
+
+    // Get the file for the modify parameter
+    const fileToSave = this.app.vault
+      .getFiles()
+      .find((inFile) => inFile.path === file.path);
+
+    await this.app.vault.modify(fileToSave, newData);
+    this.log('Document updated !');
+  }
+
   setupOnEditHandler() {
     this.log('Setup handler');
     this.app.vault.on('modify', async (file) => {
       this.log('on triggered');
-      const oldText = (file as any).unsafeCachedData;
-      if (!oldText) {
-        this.log('No cashed data');
-        return;
-      }
-
-      if (this.shouldFileBeIgnored(file.path)) {
-        this.log('Ignored file');
-        return;
-      }
-
-      const { content, data } = matter(oldText);
-
-      const updatedKey = this.settings.headerUpdated;
-      const createdKey = this.settings.headerCreated;
-
-      // Set the creation date as now if there is no entry in the front matter
-      data[createdKey] = data[createdKey]
-        ? this.parseDate(data[createdKey])
-        : new Date();
-
-      // Set the update date as epoch if there is no entry in the front matter
-      data[updatedKey] = data[updatedKey]
-        ? this.parseDate(data[updatedKey])
-        : new Date(0);
-
-      if (!this.shouldUpdateValue(data[updatedKey])) {
-        this.log('Not soon enough, will update latter');
-        return;
-      }
-
-      data[createdKey] = formatRFC3339(data[createdKey]);
-      data[updatedKey] = formatRFC3339(new Date());
-
-      const newData = matter.stringify(content, data);
-
-      // Get the file for the modify parameter
-      const fileToSave = this.app.vault
-        .getFiles()
-        .find((inFile) => inFile.path === file.path);
-
-      await this.app.vault.modify(fileToSave, newData);
-      this.log('Document updated !');
+      this.fileUpdates$.next(file.path);
     });
   }
 
