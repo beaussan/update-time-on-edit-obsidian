@@ -8,7 +8,7 @@ import {
 } from 'obsidian';
 import matter from 'gray-matter';
 import { add, formatRFC3339, isAfter } from 'date-fns';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import {
   debounceTime,
   filter,
@@ -17,7 +17,6 @@ import {
   mergeMap,
   tap,
 } from 'rxjs/operators';
-import { log } from './log';
 
 interface UpdateTimeOnEditSettings {
   headerUpdated: string;
