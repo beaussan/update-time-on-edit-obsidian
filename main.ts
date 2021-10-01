@@ -1,4 +1,11 @@
-import { App, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+import {
+  App,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  TAbstractFile,
+  TFile,
+} from 'obsidian';
 import matter from 'gray-matter';
 import { add, formatRFC3339, isAfter } from 'date-fns';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
@@ -10,6 +17,7 @@ import {
   mergeMap,
   tap,
 } from 'rxjs/operators';
+import { log } from './log';
 
 interface UpdateTimeOnEditSettings {
   headerUpdated: string;
@@ -68,15 +76,16 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       .asObservable()
       .pipe(
         filter((path) => !!path),
-        groupBy((value) => value),
-        mergeMap((group) => group.pipe(debounceTime(3000))),
+        filter((path) => path.endsWith('.md')),
         filter((path) => !this.shouldFileBeIgnored(path)),
+        groupBy((value) => value),
+        mergeMap((group) => group.pipe(debounceTime(30 * 1000))),
         map((path) =>
           this.app.vault.getFiles().find((inFile) => inFile.path === path),
         ),
         filter((file) => !!file),
         tap((file) => {
-          this.log(`Triggered for ${file.path}`);
+          this.log(`Triggered`, file);
         }),
       )
       .subscribe((file) => this.updateHeaderIfNeeded(file));
@@ -85,7 +94,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   async updateHeaderIfNeeded(file: TFile): Promise<void> {
     const oldContent = await this.app.vault.read(file);
     if (!oldContent) {
-      this.log('No content');
+      this.log('No content', file);
       return;
     }
 
@@ -105,7 +114,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       : new Date(0);
 
     if (!this.shouldUpdateValue(data[updatedKey])) {
-      this.log('Not soon enough, will update latter');
+      this.log('Not soon enough, will update latter', file);
       return;
     }
 
@@ -120,13 +129,13 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       .find((inFile) => inFile.path === file.path);
 
     await this.app.vault.modify(fileToSave, newData);
-    this.log('Document updated !');
+    this.log('Document updated !', file);
   }
 
   setupOnEditHandler() {
     this.log('Setup handler');
     this.app.vault.on('modify', async (file) => {
-      this.log('on triggered');
+      this.log('on triggered', file);
       this.fileUpdates$.next(file.path);
     });
   }
@@ -135,8 +144,10 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     this.log('unloading Update time on edit plugin');
   }
 
-  log(payload: string) {
-    console.log(`[TIME UPDATER PLUGIN] ${payload}`);
+  log(payload: string, file?: TAbstractFile) {
+    console.log(
+      `[TIME UPDATER PLUGIN] ${file ? `[${file.path}] ` : ''}${payload}`,
+    );
   }
 
   async loadSettings() {
