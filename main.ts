@@ -123,11 +123,9 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     const newData = matter.stringify(content, data);
 
     // Get the file for the modify parameter
-    const fileToSave = this.app.vault
-      .getFiles()
-      .find((inFile) => inFile.path === file.path);
 
-    await this.app.vault.modify(fileToSave, newData);
+    await this.app.vault.modify(file, newData);
+
     this.log('Document updated !', file);
   }
 
