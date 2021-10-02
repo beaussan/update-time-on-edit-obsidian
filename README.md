@@ -8,8 +8,8 @@ The keys can be configured (by default `updated` and `created`).
 The supported input date format are :
 * timestamp number (ex: 628021800000)
 * year only (ex: "2010")
-* year and mouth only (ex: "2010-06")
-* year, mouth and day (ex: "2010-06-09")
+* year and month only (ex: "2010-06")
+* year, month and day (ex: "2010-06-09")
 * ISO RFC 2822 format (ex : "2010-06-09T15:20:00Z", "2010-06-09T15:20:00-07:00")
 * Non iso format (ex: "June 9, 2010", "2010 June 9", "6/9/2010 3:20 pm")
 
