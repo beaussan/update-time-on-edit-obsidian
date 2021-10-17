@@ -1,8 +1,4 @@
-import {
-  Plugin,
-  TAbstractFile,
-  TFile,
-} from 'obsidian';
+import { Plugin, TAbstractFile, TFile, moment } from 'obsidian';
 import matter from 'gray-matter';
 import { add, formatRFC3339, isAfter } from 'date-fns';
 import { Subject } from 'rxjs';
@@ -14,8 +10,12 @@ import {
   mergeMap,
   tap,
 } from 'rxjs/operators';
-import { DEFAULT_SETTINGS, UpdateTimeOnEditSettings, UpdateTimeOnEditSettingsTab } from './Settings';
-
+import {
+  DEFAULT_SETTINGS,
+  UpdateTimeOnEditSettings,
+  UpdateTimeOnEditSettingsTab,
+} from './Settings';
+import { log } from './log';
 
 export default class UpdateTimeOnSavePlugin extends Plugin {
   settings: UpdateTimeOnEditSettings;
@@ -30,7 +30,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   }
 
   async onload() {
-    this.log('loading plugin');
+    this.log('loading plugin IN DEV');
 
     await this.loadSettings();
 
@@ -41,11 +41,20 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     this.addSettingTab(new UpdateTimeOnEditSettingsTab(this.app, this));
   }
 
+  getIgnoreFolders(): string[] {
+    if (typeof this.settings.ignoreGlobalFolder === 'string') {
+      return [this.settings.ignoreGlobalFolder];
+    }
+    return this.settings.ignoreGlobalFolder;
+  }
+
   shouldFileBeIgnored(path: string): boolean {
-    if (!this.settings.ignoreFolder) {
+    const ignores = this.getIgnoreFolders();
+    if (!ignores) {
       return false;
     }
-    return path.startsWith(this.settings.ignoreFolder);
+
+    return ignores.some((ignoreItem) => path.startsWith(ignoreItem));
   }
 
   shouldUpdateValue(date: Date): boolean {
@@ -62,6 +71,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
         filter((path) => !!path),
         filter((path) => path.endsWith('.md')),
         filter((path) => !this.shouldFileBeIgnored(path)),
+        log('on triggered'),
         groupBy((value) => value),
         mergeMap((group) => group.pipe(debounceTime(30 * 1000))),
         map((path) =>
@@ -117,7 +127,6 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   setupOnEditHandler() {
     this.log('Setup handler');
     this.app.vault.on('modify', async (file) => {
-      this.log('on triggered', file);
       this.fileUpdates$.next(file.path);
     });
   }
@@ -133,10 +142,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   }
 
   async loadSettings() {
-    this.settings = {
-      ...DEFAULT_SETTINGS,
-      ...(await this.loadData()),
-    };
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
   async saveSettings() {
