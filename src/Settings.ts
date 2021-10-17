@@ -18,8 +18,8 @@ export interface UpdateTimeOnEditSettings {
 }
 
 export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
-  dateFormat: "yyyy-MM-dd'T'HH:mm:ss.SS",
-  readDateFormat: "yyyy-MM-dd'T'HH:mm:ss.SS",
+  dateFormat: "yyyy-MM-dd'T'HH:mm:ssxxx",
+  readDateFormat: "yyyy-MM-dd'T'HH:mm:ssxxx",
   useDifferentReadFormat: false,
   enableCreateTime: true,
   headerUpdated: 'updated',
@@ -47,6 +47,8 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     this.addExcludedFoldersSetting();
     this.addTimeBetweenUpdates();
     this.addDateFormat();
+
+    // TODO enable different format from read and write
 
     this.addDiffFormatForWriteAndRead();
     this.addDateReadFormat();
@@ -97,7 +99,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
       return;
     }
     this.createDateFormatEditor({
-      getValue: () => this.plugin.settings.dateFormat,
+      getValue: () => this.plugin.settings.readDateFormat,
       name: 'Read date format',
       description: 'The read date format, useful for migrations',
       setValue: (newValue) => (this.plugin.settings.readDateFormat = newValue),
@@ -133,8 +135,8 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
           .setPlaceholder(DEFAULT_SETTINGS.dateFormat)
           .setValue(getValue())
           .onChange(async (value) => {
-            dformat.setDesc(createDoc());
             setValue(value);
+            dformat.setDesc(createDoc());
             await this.saveSettings();
           }),
       );
@@ -174,7 +176,9 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
   addFrontMatterUpdated(): void {
     new Setting(this.containerEl)
       .setName('Front matter updated name')
-      .setDesc('The key in the front matter yaml for the update time')
+      .setDesc(
+        'The key in the front matter yaml for the update time. The time **must** be present.',
+      )
       .addText((text) =>
         text
           .setPlaceholder('updated')

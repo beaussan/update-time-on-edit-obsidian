@@ -1,6 +1,6 @@
 import { Plugin, TAbstractFile, TFile, moment } from 'obsidian';
 import matter from 'gray-matter';
-import { add, formatRFC3339, isAfter } from 'date-fns';
+import { add, format, formatRFC3339, isAfter, parse } from 'date-fns';
 import { Subject } from 'rxjs';
 import {
   debounceTime,
@@ -16,6 +16,7 @@ import {
   UpdateTimeOnEditSettingsTab,
 } from './Settings';
 import { log } from './log';
+import { updateKeyInFrontMatter } from './updateKeyInFrontMatter';
 
 export default class UpdateTimeOnSavePlugin extends Plugin {
   settings: UpdateTimeOnEditSettings;
@@ -23,10 +24,24 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   fileUpdates$ = new Subject<string>();
 
   parseDate(input: string | Date): Date {
+    console.log('What in for parseDate : ', input, typeof input);
     if (input instanceof Date) {
       return input;
     }
-    return new Date(input);
+    return parse(
+      input,
+      this.settings.useDifferentReadFormat
+        ? this.settings.readDateFormat
+        : this.settings.dateFormat,
+      new Date(),
+    );
+  }
+
+  formatDate(input: Date): string {
+    console.log('Format date : ', input);
+    let s = format(input, this.settings.dateFormat);
+    console.log('Formated date : ', s);
+    return s;
   }
 
   async onload() {
@@ -41,6 +56,8 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     this.addSettingTab(new UpdateTimeOnEditSettingsTab(this.app, this));
   }
 
+  // Workaround since the first version of the plugin had a single string for
+  // the option
   getIgnoreFolders(): string[] {
     if (typeof this.settings.ignoreGlobalFolder === 'string') {
       return [this.settings.ignoreGlobalFolder];
@@ -55,6 +72,15 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     }
 
     return ignores.some((ignoreItem) => path.startsWith(ignoreItem));
+  }
+
+  shouldIgnoreCreated(path: string): boolean {
+    if (!this.settings.enableCreateTime) {
+      return true;
+    }
+    return this.settings.ignoreCreatedFolder.some((itemIgnore) =>
+      path.startsWith(itemIgnore),
+    );
   }
 
   shouldUpdateValue(date: Date): boolean {
@@ -82,25 +108,23 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
           this.log(`Triggered`, file);
         }),
       )
-      .subscribe((file) => this.updateHeaderIfNeeded(file));
+      .subscribe(async (file) => {
+        try {
+          await this.updateHeaderIfNeeded(file);
+        } catch (e) {
+          console.error(e);
+        }
+      });
   }
 
   async updateHeaderIfNeeded(file: TFile): Promise<void> {
     const oldContent = await this.app.vault.read(file);
-    if (!oldContent) {
-      this.log('No content', file);
-      return;
-    }
 
-    const { content, data } = matter(oldContent);
+    // TODO : read the date myself instead of the lib to make sure the date is parsed according to the user template
+    const { data } = matter(oldContent);
 
     const updatedKey = this.settings.headerUpdated;
     const createdKey = this.settings.headerCreated;
-
-    // Set the creation date as now if there is no entry in the front matter
-    data[createdKey] = data[createdKey]
-      ? this.parseDate(data[createdKey])
-      : new Date();
 
     // Set the update date as epoch if there is no entry in the front matter
     data[updatedKey] = data[updatedKey]
@@ -112,14 +136,30 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       return;
     }
 
-    data[createdKey] = formatRFC3339(data[createdKey]);
-    data[updatedKey] = formatRFC3339(new Date());
+    let newFile = `${oldContent}`;
 
-    const newData = matter.stringify(content, data);
+    if (!this.shouldIgnoreCreated(file.path)) {
+      // Set the creation date as now if there is no entry in the front matter
+      data[createdKey] = data[createdKey]
+        ? this.parseDate(data[createdKey])
+        : new Date();
+
+      newFile = updateKeyInFrontMatter(
+        newFile,
+        createdKey,
+        this.formatDate(data[createdKey]),
+      );
+    }
+
+    newFile = updateKeyInFrontMatter(
+      newFile,
+      updatedKey,
+      this.formatDate(new Date()),
+    );
 
     // Get the file for the modify parameter
 
-    await this.app.vault.modify(file, newData);
+    await this.app.vault.modify(file, newFile);
 
     this.log('Document updated !', file);
   }
