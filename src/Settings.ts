@@ -220,7 +220,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
       },
       name: 'Folder(s) to exclude for updating the created property',
       description:
-        'Any file udpate in this folder will not trigger a created update.',
+        'Any file updated in this folder will not trigger a created update.',
     });
   }
 
