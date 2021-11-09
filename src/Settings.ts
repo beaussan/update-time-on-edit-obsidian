@@ -232,7 +232,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
       },
       name: 'Folder to exclude of all updates',
       description:
-        'Any file udpate in this folder will not trigger a updated and created update.',
+        'Any file updated in this folder will not trigger an updated and created update.',
     });
   }
 
