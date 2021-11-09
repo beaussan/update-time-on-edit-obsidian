@@ -145,7 +145,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
   addTimeBetweenUpdates(): void {
     new Setting(this.containerEl)
       .setName('Minimum number of minutes between update')
-      .setDesc('If you have files updated too ofter, increase this.')
+      .setDesc('If your files are updating too often, increase this.')
       .addSlider((slider) =>
         slider
           .setLimits(1, 30, 1)
@@ -218,9 +218,9 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
       setValue: async (newValue) => {
         this.plugin.settings.ignoreCreatedFolder = newValue;
       },
-      name: 'Folder to exclude of only created updates',
+      name: 'Folder(s) to exclude for updating the created property',
       description:
-        'Any file udpate in this folder will not trigger a created update.',
+        'Any file updated in this folder will not trigger a created update.',
     });
   }
 
@@ -232,7 +232,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
       },
       name: 'Folder to exclude of all updates',
       description:
-        'Any file udpate in this folder will not trigger a updated and created update.',
+        'Any file updated in this folder will not trigger an updated and created update.',
     });
   }
 
