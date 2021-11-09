@@ -145,7 +145,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
   addTimeBetweenUpdates(): void {
     new Setting(this.containerEl)
       .setName('Minimum number of minutes between update')
-      .setDesc('If you have files updated too ofter, increase this.')
+      .setDesc('If your files are updating too often, increase this.')
       .addSlider((slider) =>
         slider
           .setLimits(1, 30, 1)
