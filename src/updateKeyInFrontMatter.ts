@@ -3,7 +3,7 @@ export const updateKeyInFrontMatter = (
   key: string,
   newValue: string,
 ) => {
-  if (!content.match(new RegExp(/^---[\s\S]*---\n.*/g))) {
+  if (!content.match(new RegExp(/^---[\s\S]*---.*/g))) {
     return `---
 ${key}: ${newValue}
 ---
