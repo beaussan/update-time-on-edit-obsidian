@@ -151,4 +151,15 @@ some: value
 ---
 `);
   });
+
+  it('should update existing frontmatter without \\n in the last line', () => {
+    const content = `---
+old: data
+---`;
+    const result = updateKeyInFrontMatter(content, 'some', 'value');
+    expect(result).toEqual(`---
+old: data
+some: value
+---`);
+  });
 });
