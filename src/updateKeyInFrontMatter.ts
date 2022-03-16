@@ -3,13 +3,18 @@ export const updateKeyInFrontMatter = (
   key: string,
   newValue: string,
 ) => {
-  if (!content.match(new RegExp(/^---[\s\S]*---\n.*/g))) {
+  const rgx = new RegExp(/(^---\e*)([\s\S]*?)(\n)(---\e*)([\s\S]*)/)
+  const foundContentMatch = rgx.exec(content)
+  if (!foundContentMatch) {
     return `---
 ${key}: ${newValue}
 ---
 ${content}`;
   }
-  const [start, maybeFrontMatter, ...rest] = content.split(new RegExp(/---\n/));
+
+  const start = foundContentMatch[1];
+  const maybeFrontMatter = foundContentMatch[2]+foundContentMatch[3];
+  const rest = foundContentMatch[4]+foundContentMatch[5];
 
   const oldMatterSplitted = maybeFrontMatter
     .split('\n')
@@ -34,5 +39,5 @@ ${content}`;
     })
     .join('\n');
 
-  return [start, newMatter, ...rest].join(`---\n`);
+  return [start, newMatter, rest].join(``);
 };
