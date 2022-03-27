@@ -6,8 +6,6 @@ import { format } from 'date-fns';
 
 export interface UpdateTimeOnEditSettings {
   dateFormat: string;
-  useDifferentReadFormat: boolean;
-  readDateFormat: string;
   enableCreateTime: boolean;
   headerUpdated: string;
   headerCreated: string;
@@ -19,8 +17,6 @@ export interface UpdateTimeOnEditSettings {
 
 export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
   dateFormat: "yyyy-MM-dd'T'HH:mm:ssxxx",
-  readDateFormat: "yyyy-MM-dd'T'HH:mm:ssxxx",
-  useDifferentReadFormat: false,
   enableCreateTime: true,
   headerUpdated: 'updated',
   headerCreated: 'created',
@@ -48,11 +44,6 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     this.addTimeBetweenUpdates();
     this.addDateFormat();
 
-    // TODO enable different format from read and write
-
-    this.addDiffFormatForWriteAndRead();
-    this.addDateReadFormat();
-
     containerEl.createEl('h2', { text: 'Created at' });
 
     this.addEnableCreated();
@@ -68,41 +59,12 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     await this.plugin.saveSettings();
   }
 
-  addDiffFormatForWriteAndRead(): void {
-    new Setting(this.containerEl)
-      .setName('Enable a different read format from the write one')
-      .setDesc('For advance use')
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.useDifferentReadFormat)
-          .onChange(async (newValue) => {
-            this.plugin.settings.useDifferentReadFormat = newValue;
-            await this.saveSettings();
-            this.display();
-          }),
-      );
-  }
-
   addDateFormat(): void {
     this.createDateFormatEditor({
       getValue: () => this.plugin.settings.dateFormat,
       name: 'Date format',
-      description: this.plugin.settings.useDifferentReadFormat
-        ? 'The date format for read only'
-        : 'The date format for read and write',
+      description: 'The date format for read and write',
       setValue: (newValue) => (this.plugin.settings.dateFormat = newValue),
-    });
-  }
-
-  addDateReadFormat(): void {
-    if (!this.plugin.settings.useDifferentReadFormat) {
-      return;
-    }
-    this.createDateFormatEditor({
-      getValue: () => this.plugin.settings.readDateFormat,
-      name: 'Read date format',
-      description: 'The read date format, useful for migrations',
-      setValue: (newValue) => (this.plugin.settings.readDateFormat = newValue),
     });
   }
 

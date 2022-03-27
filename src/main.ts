@@ -1,6 +1,6 @@
-import { Plugin, TAbstractFile, TFile, moment } from 'obsidian';
+import { Plugin, TAbstractFile, TFile } from 'obsidian';
 import matter from 'gray-matter';
-import { add, format, formatRFC3339, isAfter, parse } from 'date-fns';
+import { add, format, isAfter, parse } from 'date-fns';
 import { Subject } from 'rxjs';
 import {
   debounceTime,
@@ -28,13 +28,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     if (input instanceof Date) {
       return input;
     }
-    return parse(
-      input,
-      this.settings.useDifferentReadFormat
-        ? this.settings.readDateFormat
-        : this.settings.dateFormat,
-      new Date(),
-    );
+    return parse(input, this.settings.dateFormat, new Date());
   }
 
   formatDate(input: Date): string {
@@ -120,7 +114,6 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   async updateHeaderIfNeeded(file: TFile): Promise<void> {
     const oldContent = await this.app.vault.read(file);
 
-    // TODO : read the date myself instead of the lib to make sure the date is parsed according to the user template
     const { data } = matter(oldContent);
 
     const updatedKey = this.settings.headerUpdated;
