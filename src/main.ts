@@ -9,6 +9,7 @@ import {
   map,
   mergeMap,
   tap,
+  take
 } from 'rxjs/operators';
 import {
   DEFAULT_SETTINGS,
@@ -99,7 +100,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
         filter((path) => !this.shouldFileBeIgnored(path)),
         log('on triggered'),
         groupBy((value) => value),
-        mergeMap((group) => group.pipe(debounceTime(30 * 1000))),
+        mergeMap((group) => group.pipe(take(1))),
         map((path) =>
           this.app.vault.getFiles().find((inFile) => inFile.path === path),
         ),
