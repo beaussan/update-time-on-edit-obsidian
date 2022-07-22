@@ -1,5 +1,4 @@
 import { Plugin, TAbstractFile, TFile, moment } from 'obsidian';
-import matter from 'gray-matter';
 import { add, format, formatRFC3339, isAfter, parse } from 'date-fns';
 import { Subject } from 'rxjs';
 import {
@@ -121,17 +120,18 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     const oldContent = await this.app.vault.read(file);
 
     // TODO : read the date myself instead of the lib to make sure the date is parsed according to the user template
-    const { data } = matter(oldContent);
+    const fronmatter: any =
+      this.app.metadataCache.getCache(file.path)?.frontmatter ?? {};
 
     const updatedKey = this.settings.headerUpdated;
     const createdKey = this.settings.headerCreated;
 
     // Set the update date as epoch if there is no entry in the front matter
-    data[updatedKey] = data[updatedKey]
-      ? this.parseDate(data[updatedKey])
+    const updateTime = fronmatter[updatedKey]
+      ? this.parseDate(fronmatter[updatedKey])
       : new Date(0);
 
-    if (!this.shouldUpdateValue(data[updatedKey])) {
+    if (!this.shouldUpdateValue(updateTime)) {
       this.log('Not soon enough, will update latter', file);
       return;
     }
@@ -140,14 +140,14 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
 
     if (!this.shouldIgnoreCreated(file.path)) {
       // Set the creation date as now if there is no entry in the front matter
-      data[createdKey] = data[createdKey]
-        ? this.parseDate(data[createdKey])
+      const createdTime = fronmatter[createdKey]
+        ? this.parseDate(fronmatter[createdKey])
         : new Date();
 
       newFile = updateKeyInFrontMatter(
         newFile,
         createdKey,
-        this.formatDate(data[createdKey]),
+        this.formatDate(createdTime),
       );
     }
 
