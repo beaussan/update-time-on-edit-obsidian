@@ -32,7 +32,6 @@
   "dependencies": {
     "@popperjs/core": "2.10.2",
     "date-fns": "2.21.1",
-    "gray-matter": "4.0.2",
     "rxjs": "6.6.7"
   },
   "husky": {
