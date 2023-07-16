@@ -18,7 +18,7 @@ ${content}`;
 
   const oldMatterSplitted = maybeFrontMatter
     .split('\n')
-    .map((item) => item.split(/: /, 2));
+    .map((item) => item.split(/: /));
 
   const maybeKeyIndex = oldMatterSplitted.findIndex(
     (it) => it[0] === key && it.length === 2,
