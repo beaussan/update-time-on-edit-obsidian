@@ -86,6 +86,15 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
         descr.createEl('br'),
         `Obsidian default format for date properties: yyyy-MM-dd'T'HH:mm`,
       );
+      if (getValue().includes('S')) {
+        descr.append(
+          descr.createEl('br'),
+          descr.createEl('span', {
+            text: 'WARNING: Adding millisecond may trigger a loop.',
+            cls: 'update-time-on-edit--settings--warn',
+          }),
+        );
+      }
       return descr;
     };
     let dformat = new Setting(this.containerEl)

@@ -1,3 +1,7 @@
 .time_search {
     width: calc(100% - 20px);
 }
+
+.update-time-on-edit--settings--warn {
+    color: #ff5a5a
+}
