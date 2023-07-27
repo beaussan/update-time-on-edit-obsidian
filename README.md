@@ -1,17 +1,15 @@
 # Update time on edit plugin
 
-This plugins update on save the metadata of the file with the time it was updated, and the time of creation if there is none (useful for new files).
-The keys can be configured (by default `updated` and `created`).
+This plugin update on save the metadata of the file with the time it was updated, and the time of creation if there is none (useful for new files).
 
-**This is still an early version of the plugin, here is the current limitations :**
+Here is a list of feature this plugin provides :
+- Keep in sync the `mtime` (last modified time) in a property key (default to `updated`)
+- Keep in sync the `ctime` (file creation time) in a property key (default to `created`)
+- Customize the date format, default to obsidian date format for property display
+- Ignore folder for all update, useful for template files
+- Ignore folder for the creation property
+- Works on mobile & desktop
 
-The supported input date format are :
-* timestamp number (ex: 628021800000)
-* year only (ex: "2010")
-* year and month only (ex: "2010-06")
-* year, month and day (ex: "2010-06-09")
-* ISO RFC 2822 format (ex : "2010-06-09T15:20:00Z", "2010-06-09T15:20:00-07:00")
-* Non iso format (ex: "June 9, 2010", "2010 June 9", "6/9/2010 3:20 pm")
+This plugin will read the `ctime` and `mtime` from obsidian, and thus, the file system. **If file change from an external source, the header keys will be updated**.
 
-The only supported output is the [RFC 3339](https://tools.ietf.org/html/rfc3339) format (ex : "2019-09-18T19:00:52Z")
-
+Remember to backup your vault since this plugin will modify files.

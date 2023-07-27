@@ -1,11 +1,12 @@
 {
   "name": "obsidian-update-time-on-edit",
-  "version": "1.1.2",
+  "version": "2.0.0",
   "description": "Keep the updated front matter header in sync with the last edit",
   "main": "main.js",
   "scripts": {
-    "dev": "rollup --config rollup.config.js -w",
-    "build": "rollup --config rollup.config.js --environment BUILD:production",
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
     "format:write": "prettier --write \"**/*.{ts,json}\"",
     "format:check": "prettier --list-different \"**/*.{ts,json}\""
   },
@@ -13,26 +14,27 @@
   "author": "@beaussan",
   "license": "MIT",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^18.0.0",
-    "@rollup/plugin-node-resolve": "^11.2.1",
-    "@rollup/plugin-typescript": "^8.2.1",
     "@types/jest": "27.0.2",
-    "@types/node": "^14.14.37",
+    "@types/node": "^16.11.6",
+    "@typescript-eslint/eslint-plugin": "5.29.0",
+    "@typescript-eslint/parser": "5.29.0",
+    "builtin-modules": "3.3.0",
+    "esbuild": "0.17.3",
+    "esbuild-copy-static-files": "^0.1.0",
+    "esbuild-plugin-copy": "^2.1.1",
+    "esbuild-plugin-replace": "^1.4.0",
     "husky": "6.0.0",
     "jest": "27.2.5",
-    "obsidian": "^0.12.17",
+    "obsidian": "^1.1.1",
     "prettier": "2.2.1",
     "pretty-quick": "3.1.0",
-    "rollup": "^2.32.1",
-    "rollup-plugin-copy": "3.4.0",
     "ts-jest": "27.0.7",
-    "tslib": "^2.2.0",
-    "typescript": "^4.2.4"
+    "tslib": "2.4.0",
+    "typescript": "4.7.4"
   },
   "dependencies": {
     "@popperjs/core": "2.10.2",
     "date-fns": "2.21.1",
-    "gray-matter": "4.0.2",
     "rxjs": "6.6.7"
   },
   "husky": {

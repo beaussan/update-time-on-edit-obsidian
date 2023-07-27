@@ -1,40 +1,23 @@
 import { Plugin, TAbstractFile, TFile } from 'obsidian';
-import matter from 'gray-matter';
-import { add, format, isAfter, parse } from 'date-fns';
-import { Subject } from 'rxjs';
-import {
-  debounceTime,
-  filter,
-  groupBy,
-  map,
-  mergeMap,
-  tap,
-} from 'rxjs/operators';
+import format from 'date-fns/format';
 import {
   DEFAULT_SETTINGS,
   UpdateTimeOnEditSettings,
   UpdateTimeOnEditSettingsTab,
 } from './Settings';
-import { log } from './log';
-import { updateKeyInFrontMatter } from './updateKeyInFrontMatter';
+import { isTFile } from './utils';
 
 export default class UpdateTimeOnSavePlugin extends Plugin {
   settings: UpdateTimeOnEditSettings;
 
-  fileUpdates$ = new Subject<string>();
-
-  parseDate(input: string | Date): Date {
-    console.log('What in for parseDate : ', input, typeof input);
-    if (input instanceof Date) {
-      return input;
-    }
-    return parse(input, this.settings.dateFormat, new Date());
+  parseDate(input: number): Date {
+    return new Date(input);
   }
 
   formatDate(input: Date): string {
-    console.log('Format date : ', input);
+    this.log('Format date : ', input);
     let s = format(input, this.settings.dateFormat);
-    console.log('Formated date : ', s);
+    this.log('Formated date : ', s);
     return s;
   }
 
@@ -44,8 +27,6 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     await this.loadSettings();
 
     this.setupOnEditHandler();
-
-    this.listenOnNewUpdates();
 
     this.addSettingTab(new UpdateTimeOnEditSettingsTab(this.app, this));
   }
@@ -77,101 +58,72 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     );
   }
 
-  shouldUpdateValue(date: Date): boolean {
-    const nMinutesAgo = add(new Date(), {
-      minutes: -this.settings.minMinutesBetweenSaves,
-    });
-    return isAfter(nMinutesAgo, date);
-  }
-
-  listenOnNewUpdates() {
-    this.fileUpdates$
-      .asObservable()
-      .pipe(
-        filter((path) => !!path),
-        filter((path) => path.endsWith('.md')),
-        filter((path) => !this.shouldFileBeIgnored(path)),
-        log('on triggered'),
-        groupBy((value) => value),
-        mergeMap((group) => group.pipe(debounceTime(30 * 1000))),
-        map((path) =>
-          this.app.vault.getFiles().find((inFile) => inFile.path === path),
-        ),
-        filter((file) => !!file),
-        tap((file) => {
-          this.log(`Triggered`, file);
-        }),
-      )
-      .subscribe(async (file) => {
-        try {
-          await this.updateHeaderIfNeeded(file);
-        } catch (e) {
-          console.error(e);
-        }
-      });
-  }
-
-  async updateHeaderIfNeeded(file: TFile): Promise<void> {
-    const oldContent = await this.app.vault.read(file);
-
-    const { data } = matter(oldContent);
-
-    const updatedKey = this.settings.headerUpdated;
-    const createdKey = this.settings.headerCreated;
-
-    // Set the update date as epoch if there is no entry in the front matter
-    data[updatedKey] = data[updatedKey]
-      ? this.parseDate(data[updatedKey])
-      : new Date(0);
-
-    if (!this.shouldUpdateValue(data[updatedKey])) {
-      this.log('Not soon enough, will update latter', file);
+  async handleFileChange(
+    file: TAbstractFile,
+    triggerSource: 'create' | 'modify',
+  ): Promise<void> {
+    if (!isTFile(file)) {
       return;
     }
 
-    let newFile = `${oldContent}`;
-
-    if (!this.shouldIgnoreCreated(file.path)) {
-      // Set the creation date as now if there is no entry in the front matter
-      data[createdKey] = data[createdKey]
-        ? this.parseDate(data[createdKey])
-        : new Date();
-
-      newFile = updateKeyInFrontMatter(
-        newFile,
-        createdKey,
-        this.formatDate(data[createdKey]),
-      );
+    if (
+      !file.path ||
+      !file.path.endsWith('.md') ||
+      this.shouldFileBeIgnored(file.path)
+    ) {
+      return;
     }
 
-    newFile = updateKeyInFrontMatter(
-      newFile,
-      updatedKey,
-      this.formatDate(new Date()),
-    );
+    await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+      this.log('current metadata: ', frontmatter);
+      const updatedKey = this.settings.headerUpdated;
+      const createdKey = this.settings.headerCreated;
 
-    // Get the file for the modify parameter
+      if (triggerSource === 'create') {
+        if (frontmatter[createdKey]) {
+          this.log('skipping, this is probably startup create file');
+          return;
+        }
+      }
 
-    await this.app.vault.modify(file, newFile);
+      frontmatter[updatedKey] = this.formatDate(
+        this.parseDate(file.stat.mtime),
+      );
 
-    this.log('Document updated !', file);
+      if (!this.shouldIgnoreCreated(file.path)) {
+        frontmatter[createdKey] = this.formatDate(
+          this.parseDate(file.stat.ctime),
+        );
+      }
+    });
   }
 
   setupOnEditHandler() {
     this.log('Setup handler');
-    this.app.vault.on('modify', async (file) => {
-      this.fileUpdates$.next(file.path);
-    });
+
+    this.registerEvent(
+      this.app.vault.on('modify', (file) => {
+        this.log('TRIGGER FROM MODIFY');
+        return this.handleFileChange(file, 'modify');
+      }),
+    );
+    this.registerEvent(
+      this.app.vault.on('create', (file) => {
+        this.log('TRIGGER FROM CREATE');
+        return this.handleFileChange(file, 'create');
+      }),
+    );
   }
 
   onunload() {
     this.log('unloading Update time on edit plugin');
   }
 
-  log(payload: string, file?: TAbstractFile) {
-    console.log(
-      `[TIME UPDATER PLUGIN] ${file ? `[${file.path}] ` : ''}${payload}`,
-    );
+  log(...data: any[]) {
+    if (!__DEV_MODE__) {
+      return;
+    }
+    console.log('[UTOE]:', ...data);
   }
 
   async loadSettings() {

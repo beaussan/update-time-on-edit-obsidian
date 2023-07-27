@@ -9,18 +9,16 @@ export interface UpdateTimeOnEditSettings {
   enableCreateTime: boolean;
   headerUpdated: string;
   headerCreated: string;
-  minMinutesBetweenSaves: number;
   // Union because of legacy
   ignoreGlobalFolder?: string | string[];
   ignoreCreatedFolder?: string[];
 }
 
 export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
-  dateFormat: "yyyy-MM-dd'T'HH:mm:ssxxx",
+  dateFormat: "yyyy-MM-dd'T'HH:mm",
   enableCreateTime: true,
   headerUpdated: 'updated',
   headerCreated: 'created',
-  minMinutesBetweenSaves: 1,
   ignoreGlobalFolder: [],
   ignoreCreatedFolder: [],
 };
@@ -41,18 +39,17 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     containerEl.createEl('h2', { text: 'Global settings' });
 
     this.addExcludedFoldersSetting();
-    this.addTimeBetweenUpdates();
     this.addDateFormat();
+
+    containerEl.createEl('h2', { text: 'Updated at' });
+
+    this.addFrontMatterUpdated();
 
     containerEl.createEl('h2', { text: 'Created at' });
 
     this.addEnableCreated();
     this.addFrontMatterCreated();
     this.addExcludedCreatedFoldersSetting();
-
-    containerEl.createEl('h2', { text: 'Updated at' });
-
-    this.addFrontMatterUpdated();
   }
 
   async saveSettings() {
@@ -86,6 +83,8 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
         }),
         descr.createEl('br'),
         `Currently: ${format(new Date(), getValue())}`,
+        descr.createEl('br'),
+        `Obsidian default format for date properties: yyyy-MM-dd'T'HH:mm`,
       );
       return descr;
     };
@@ -101,22 +100,6 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
             dformat.setDesc(createDoc());
             await this.saveSettings();
           }),
-      );
-  }
-
-  addTimeBetweenUpdates(): void {
-    new Setting(this.containerEl)
-      .setName('Minimum number of minutes between update')
-      .setDesc('If your files are updating too often, increase this.')
-      .addSlider((slider) =>
-        slider
-          .setLimits(1, 30, 1)
-          .setValue(this.plugin.settings.minMinutesBetweenSaves)
-          .onChange(async (value) => {
-            this.plugin.settings.minMinutesBetweenSaves = value;
-            await this.saveSettings();
-          })
-          .setDynamicTooltip(),
       );
   }
 
@@ -138,9 +121,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
   addFrontMatterUpdated(): void {
     new Setting(this.containerEl)
       .setName('Front matter updated name')
-      .setDesc(
-        'The key in the front matter yaml for the update time. The time **must** be present.',
-      )
+      .setDesc('The key in the front matter yaml for the update time.')
       .addText((text) =>
         text
           .setPlaceholder('updated')
