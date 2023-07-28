@@ -1,4 +1,4 @@
-import { Plugin, TAbstractFile, TFile } from 'obsidian';
+import { Plugin, TAbstractFile, TFile, Notice } from 'obsidian';
 import format from 'date-fns/format';
 import {
   DEFAULT_SETTINGS,
@@ -74,28 +74,39 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       return;
     }
 
-    await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
-      this.log('current metadata: ', frontmatter);
-      const updatedKey = this.settings.headerUpdated;
-      const createdKey = this.settings.headerCreated;
+    try {
+      await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+        this.log('current metadata: ', frontmatter);
+        const updatedKey = this.settings.headerUpdated;
+        const createdKey = this.settings.headerCreated;
 
-      if (triggerSource === 'create') {
-        if (frontmatter[createdKey]) {
-          this.log('skipping, this is probably startup create file');
-          return;
+        if (triggerSource === 'create') {
+          if (frontmatter[createdKey]) {
+            this.log('skipping, this is probably startup create file');
+            return;
+          }
         }
-      }
 
-      frontmatter[updatedKey] = this.formatDate(
-        this.parseDate(file.stat.mtime),
-      );
-
-      if (!this.shouldIgnoreCreated(file.path)) {
-        frontmatter[createdKey] = this.formatDate(
-          this.parseDate(file.stat.ctime),
+        frontmatter[updatedKey] = this.formatDate(
+          this.parseDate(file.stat.mtime),
         );
+
+        if (!this.shouldIgnoreCreated(file.path)) {
+          frontmatter[createdKey] = this.formatDate(
+            this.parseDate(file.stat.ctime),
+          );
+        }
+      });
+    } catch (e) {
+      if (e?.name === 'YAMLParseError') {
+        const errorMessage = `Update time on edit failed
+Malformed frontamtter on this file : ${file.path}
+
+${e.message}`;
+        new Notice(errorMessage, 4000);
+        console.error(errorMessage);
       }
-    });
+    }
   }
 
   setupOnEditHandler() {
