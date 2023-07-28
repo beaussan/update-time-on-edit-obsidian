@@ -74,6 +74,15 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       return;
     }
 
+    //@ts-ignore
+    const ea: any = ExcalidrawAutomate; //ea will be undefined if the Excalidraw plugin is not running
+    const isExcalidrawFile = ea ? ea.isExcalidrawFile(file) : false;
+
+    if (isExcalidrawFile) {
+      // TODO: maybe add a setting to enable it if users want to have the keys works there
+      return;
+    }
+
     try {
       await this.app.fileManager.processFrontMatter(file, (frontmatter) => {
         this.log('current metadata: ', frontmatter);
