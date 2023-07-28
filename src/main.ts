@@ -107,12 +107,6 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
         return this.handleFileChange(file, 'modify');
       }),
     );
-    this.registerEvent(
-      this.app.vault.on('create', (file) => {
-        this.log('TRIGGER FROM CREATE');
-        return this.handleFileChange(file, 'create');
-      }),
-    );
   }
 
   onunload() {
