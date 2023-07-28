@@ -75,7 +75,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     }
 
     //@ts-ignore
-    const ea: any = ExcalidrawAutomate; //ea will be undefined if the Excalidraw plugin is not running
+    const ea: any = typeof ExcalidrawAutomate === "undefined" ? undefined : ExcalidrawAutomate; //ea will be undefined if the Excalidraw plugin is not running
     const isExcalidrawFile = ea ? ea.isExcalidrawFile(file) : false;
 
     if (isExcalidrawFile) {
