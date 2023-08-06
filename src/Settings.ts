@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, SearchComponent, Setting } from 'obsidian';
 import UpdateTimeOnSavePlugin from './main';
 import { FolderSuggest } from './suggesters/FolderSuggester';
 import { onlyUniqueArray } from './utils';
@@ -9,6 +9,7 @@ export interface UpdateTimeOnEditSettings {
   enableCreateTime: boolean;
   headerUpdated: string;
   headerCreated: string;
+  minMinutesBetweenSaves: number;
   // Union because of legacy
   ignoreGlobalFolder?: string | string[];
   ignoreCreatedFolder?: string[];
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
   enableCreateTime: true,
   headerUpdated: 'updated',
   headerCreated: 'created',
+  minMinutesBetweenSaves: 1,
   ignoreGlobalFolder: [],
   ignoreCreatedFolder: [],
 };
@@ -39,6 +41,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     containerEl.createEl('h2', { text: 'Global settings' });
 
     this.addExcludedFoldersSetting();
+    this.addTimeBetweenUpdates();
     this.addDateFormat();
 
     containerEl.createEl('h2', { text: 'Updated at' });
@@ -112,6 +115,22 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
       );
   }
 
+  addTimeBetweenUpdates(): void {
+    new Setting(this.containerEl)
+      .setName('Minimum number of minutes between update')
+      .setDesc('If your files are updating too often, increase this.')
+      .addSlider((slider) =>
+        slider
+          .setLimits(1, 30, 1)
+          .setValue(this.plugin.settings.minMinutesBetweenSaves)
+          .onChange(async (value) => {
+            this.plugin.settings.minMinutesBetweenSaves = value;
+            await this.saveSettings();
+          })
+          .setDynamicTooltip(),
+      );
+  }
+
   addEnableCreated(): void {
     new Setting(this.containerEl)
       .setName('Enable the created front matter key update')
@@ -166,7 +185,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     }
 
     this.doSearchAndRemoveList({
-      currentList: this.plugin.settings.ignoreCreatedFolder,
+      currentList: this.plugin.settings.ignoreCreatedFolder ?? [],
       setValue: async (newValue) => {
         this.plugin.settings.ignoreCreatedFolder = newValue;
       },
@@ -194,21 +213,31 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     description,
     name,
   }: ArgsSearchAndRemove) {
+    let searchInput: SearchComponent | undefined;
     new Setting(this.containerEl)
       .setName(name)
       .setDesc(description)
       .addSearch((cb) => {
+        searchInput = cb;
         new FolderSuggest(this.app, cb.inputEl);
-        cb.setPlaceholder('Example: folder1/folder2').onChange(
-          async (newFolder) => {
-            await setValue([...currentList, newFolder].filter(onlyUniqueArray));
-            await this.saveSettings();
-            cb.setValue('');
-            this.display();
-          },
-        );
+        cb.setPlaceholder('Example: folder1/folder2');
         // @ts-ignore
         cb.containerEl.addClass('time_search');
+      })
+      .addButton((cb) => {
+        cb.setIcon('plus');
+        cb.setTooltip('Add folder');
+        cb.onClick(async () => {
+          if (!searchInput) {
+            return;
+          }
+          const newFolder = searchInput.getValue();
+
+          await setValue([...currentList, newFolder].filter(onlyUniqueArray));
+          await this.saveSettings();
+          searchInput.setValue('');
+          this.display();
+        });
       });
 
     currentList.forEach((ignoreFolder) =>
