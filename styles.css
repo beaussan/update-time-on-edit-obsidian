@@ -5,3 +5,15 @@
 .update-time-on-edit--settings--warn {
     color: #ff5a5a
 }
+
+.update-time-on-edit--bulk-modal {
+    .progress-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+
+        & progress {
+            flex: 1
+        }
+    }
+}

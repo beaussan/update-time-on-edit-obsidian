@@ -3,6 +3,7 @@ import UpdateTimeOnSavePlugin from './main';
 import { FolderSuggest } from './suggesters/FolderSuggester';
 import { onlyUniqueArray } from './utils';
 import { format } from 'date-fns';
+import { UpdateAllModal } from './UpdateAllModal';
 
 export interface UpdateTimeOnEditSettings {
   dateFormat: string;
@@ -43,6 +44,17 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     this.addExcludedFoldersSetting();
     this.addTimeBetweenUpdates();
     this.addDateFormat();
+
+    new Setting(this.containerEl)
+      .setName('Update all files')
+      .setDesc(
+        'This plugin will only work on new files, but if you want to update all files in your vault at once, you can do it here.',
+      )
+      .addButton((cb) => {
+        cb.setButtonText('Update all files').onClick(() => {
+          new UpdateAllModal(this.app, this.plugin).open();
+        });
+      });
 
     containerEl.createEl('h2', { text: 'Updated at' });
 
@@ -89,15 +101,6 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
         descr.createEl('br'),
         `Obsidian default format for date properties: yyyy-MM-dd'T'HH:mm`,
       );
-      if (getValue().includes('S')) {
-        descr.append(
-          descr.createEl('br'),
-          descr.createEl('span', {
-            text: 'WARNING: Adding millisecond may trigger a loop.',
-            cls: 'update-time-on-edit--settings--warn',
-          }),
-        );
-      }
       return descr;
     };
     let dformat = new Setting(this.containerEl)

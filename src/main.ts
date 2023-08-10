@@ -56,13 +56,25 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return this.settings.ignoreGlobalFolder ?? [];
   }
 
-  shouldFileBeIgnored(path: string): boolean {
+  shouldFileBeIgnored(file: TFile): boolean {
+    if (!file.path) {
+      return true;
+    }
+    if (!file.path.endsWith('.md')) {
+      return true;
+    }
+    const isExcalidrawFile = this.isExcalidrawFile(file);
+
+    if (isExcalidrawFile) {
+      // TODO: maybe add a setting to enable it if users want to have the keys works there
+      return true;
+    }
     const ignores = this.getIgnoreFolders();
     if (!ignores) {
       return false;
     }
 
-    return ignores.some((ignoreItem) => path.startsWith(ignoreItem));
+    return ignores.some((ignoreItem) => file.path.startsWith(ignoreItem));
   }
 
   shouldIgnoreCreated(path: string): boolean {
@@ -91,27 +103,24 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return ea ? ea.isExcalidrawFile(file) : false;
   }
 
+  async getAllFilesPossiblyAffected() {
+    return this.app.vault
+      .getMarkdownFiles()
+      .filter((file) => !this.shouldFileBeIgnored(file));
+  }
+
   async handleFileChange(
     file: TAbstractFile,
-    triggerSource: 'create' | 'modify',
-  ): Promise<void> {
+    triggerSource: 'modify' | 'bulk',
+  ): Promise<
+    { status: 'ok' } | { status: 'error'; error: any } | { status: 'ignored' }
+  > {
     if (!isTFile(file)) {
-      return;
+      return { status: 'ignored' };
     }
 
-    if (
-      !file.path ||
-      !file.path.endsWith('.md') ||
-      this.shouldFileBeIgnored(file.path)
-    ) {
-      return;
-    }
-
-    const isExcalidrawFile = this.isExcalidrawFile(file);
-
-    if (isExcalidrawFile) {
-      // TODO: maybe add a setting to enable it if users want to have the keys works there
-      return;
+    if (this.shouldFileBeIgnored(file)) {
+      return { status: 'ignored' };
     }
 
     try {
@@ -126,13 +135,6 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
         if (!mTime || !cTime) {
           this.log('Something wrong happen, skipping');
           return;
-        }
-
-        if (triggerSource === 'create') {
-          if (frontmatter[createdKey]) {
-            this.log('skipping, this is probably startup create file');
-            return;
-          }
         }
 
         if (!this.shouldIgnoreCreated(file.path)) {
@@ -162,8 +164,15 @@ Malformed frontamtter on this file : ${file.path}
 ${e.message}`;
         new Notice(errorMessage, 4000);
         console.error(errorMessage);
+        return {
+          status: 'error',
+          error: e,
+        };
       }
     }
+    return {
+      status: 'ok',
+    };
   }
 
   setupOnEditHandler() {
