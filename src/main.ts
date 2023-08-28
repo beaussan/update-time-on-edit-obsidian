@@ -137,8 +137,10 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
           return;
         }
 
-        if (!this.shouldIgnoreCreated(file.path)) {
-          frontmatter[createdKey] = this.formatDate(cTime);
+        if (!frontmatter[createdKey]) {
+          if (!this.shouldIgnoreCreated(file.path)) {
+            frontmatter[createdKey] = this.formatDate(cTime);
+          }
         }
 
         const currentMTimeOnFile = this.parseDate(frontmatter[updatedKey]);
