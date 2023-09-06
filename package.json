@@ -1,6 +1,6 @@
 {
   "name": "obsidian-update-time-on-edit",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Keep the updated front matter header in sync with the last edit",
   "main": "main.js",
   "scripts": {
@@ -30,7 +30,7 @@
     "husky": "6.0.0",
     "jest": "27.2.5",
     "lightningcss": "^1.21.5",
-    "obsidian": "^1.1.1",
+    "obsidian": "^1.4.4",
     "prettier": "2.2.1",
     "pretty-quick": "3.1.0",
     "ts-jest": "27.0.7",
