@@ -56,11 +56,15 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return this.settings.ignoreGlobalFolder ?? [];
   }
 
-  shouldFileBeIgnored(file: TFile): boolean {
+  async shouldFileBeIgnored(file: TFile): Promise<boolean> {
     if (!file.path) {
       return true;
     }
     if (!file.path.endsWith('.md')) {
+      return true;
+    }
+
+    if ((await this.app.vault.read(file)).trim().length === 0) {
       return true;
     }
     const isExcalidrawFile = this.isExcalidrawFile(file);
@@ -119,7 +123,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       return { status: 'ignored' };
     }
 
-    if (this.shouldFileBeIgnored(file)) {
+    if (await this.shouldFileBeIgnored(file)) {
       return { status: 'ignored' };
     }
 
