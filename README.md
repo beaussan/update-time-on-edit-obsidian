@@ -1,8 +1,9 @@
-# Update time on edit plugin
+# auto props Update time on edit plugin
 
 This plugin update on save the metadata of the file with the time it was updated, and the time of creation if there is none (useful for new files).
 
 Here is a list of feature this plugin provides :
+
 - Keep in sync the `mtime` (last modified time) in a property key (default to `updated`)
 - Keep in sync the `ctime` (file creation time) in a property key (default to `created`)
 - Customize the date format, default to obsidian date format for property display

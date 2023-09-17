@@ -1,6 +1,6 @@
 {
-  "name": "obsidian-update-time-on-edit",
-  "version": "2.3.1",
+  "name": "obsidian-auto-props-updated",
+  "version": "1.0.0",
   "description": "Keep the updated front matter header in sync with the last edit",
   "main": "main.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "format:check": "prettier --list-different \"**/*.{ts,json}\""
   },
   "keywords": [],
-  "author": "@beaussan",
+  "author": "wflixu",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "27.0.2",

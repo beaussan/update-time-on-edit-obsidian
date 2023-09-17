@@ -1,10 +1,10 @@
 {
-	"id": "update-time-on-edit",
-	"name": "Update time on edit",
-	"version": "2.3.1",
+	"id": "auto-props-updated",
+	"name": "Auto update file edited time in prop updated",
+	"version": "1.0.0",
 	"minAppVersion": "1.4.4",
 	"description": "Keep front matter in sync with the last edit time",
-	"author": "@beaussan",
-	"authorUrl": "https://github.com/beaussan",
+	"author": "wflixu",
+	"authorUrl": "https://github.com/wflixu",
 	"isDesktopOnly": false
 }

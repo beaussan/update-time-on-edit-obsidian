@@ -12,6 +12,7 @@ export interface UpdateTimeOnEditSettings {
   headerCreated: string;
   minMinutesBetweenSaves: number;
   // Union because of legacy
+  folder?: string | string[]
   ignoreGlobalFolder?: string | string[];
   ignoreCreatedFolder?: string[];
 }
@@ -22,6 +23,7 @@ export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
   headerUpdated: 'updated',
   headerCreated: 'created',
   minMinutesBetweenSaves: 1,
+  folder:[],
   ignoreGlobalFolder: [],
   ignoreCreatedFolder: [],
 };
@@ -41,6 +43,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
 
     containerEl.createEl('h2', { text: 'Global settings' });
 
+    this.addIncludedFoldersSetting();
     this.addExcludedFoldersSetting();
     this.addTimeBetweenUpdates();
     this.addDateFormat();
@@ -198,6 +201,17 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     });
   }
 
+  addIncludedFoldersSetting(): void {
+    this.doSearchAndRemoveList({
+      currentList: this.plugin.getIncludedFolders(),
+      setValue: async (newValue) => {
+        this.plugin.settings.folder = newValue;
+      },
+      name: 'Folder to include of all updates',
+      description:
+        'Any file updated in this folder will trigger an updated and created update.',
+    });
+  }
   addExcludedFoldersSetting(): void {
     this.doSearchAndRemoveList({
       currentList: this.plugin.getIgnoreFolders(),

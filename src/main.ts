@@ -56,6 +56,45 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return this.settings.ignoreGlobalFolder ?? [];
   }
 
+  getIncludedFolders(): string[] {
+    if (typeof this.settings.folder === 'string') {
+      return [this.settings.folder];
+    }
+    return this.settings.folder ?? [];
+  }
+
+  async defaultIgnoreFile(file: TFile): Promise<boolean> {
+    if (!file.path) {
+      return true;
+    }
+    if (!file.path.endsWith('.md')) {
+      return true;
+    }
+
+    if ((await this.app.vault.read(file)).trim().length === 0) {
+      return true;
+    }
+    const isExcalidrawFile = this.isExcalidrawFile(file);
+
+    if (isExcalidrawFile) {
+      // TODO: maybe add a setting to enable it if users want to have the keys works there
+      return true;
+    }
+    return false;
+  }
+  async shouldFileUpdate(file: TFile): Promise<boolean> {
+    let isDefaultIgnore = await this.defaultIgnoreFile(file);
+    if(isDefaultIgnore){
+      return false;
+    }
+    const folders = this.getIncludedFolders();
+    const inFolder = folders.some((folderItem) =>
+      file.path.startsWith(folderItem),
+    );
+    const ignores = this.getIgnoreFolders();
+    let ignore = ignores.some((ignoreItem) => file.path.startsWith(ignoreItem));
+    return inFolder && !ignore;
+  }
   async shouldFileBeIgnored(file: TFile): Promise<boolean> {
     if (!file.path) {
       return true;
@@ -73,12 +112,15 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       // TODO: maybe add a setting to enable it if users want to have the keys works there
       return true;
     }
-    const ignores = this.getIgnoreFolders();
-    if (!ignores) {
-      return false;
-    }
+    const folders = this.getIncludedFolders();
+    const inFolder = folders.some((folderItem) =>
+      file.path.startsWith(folderItem),
+    );
 
-    return ignores.some((ignoreItem) => file.path.startsWith(ignoreItem));
+    const ignores = this.getIgnoreFolders();
+    let ignore = ignores.some((ignoreItem) => file.path.startsWith(ignoreItem));
+
+    return !inFolder && ignore;
   }
 
   shouldIgnoreCreated(path: string): boolean {
@@ -110,7 +152,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   async getAllFilesPossiblyAffected() {
     return this.app.vault
       .getMarkdownFiles()
-      .filter((file) => !this.shouldFileBeIgnored(file));
+      .filter((file) => this.shouldFileUpdate(file));
   }
 
   async handleFileChange(
