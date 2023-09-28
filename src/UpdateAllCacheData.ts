@@ -9,7 +9,7 @@ const createTextSpan = (text: string): HTMLSpanElement => {
 
 const createBr = () => document.createElement('br');
 
-export class UpdateAllModal extends Modal {
+export class UpdateAllCacheData extends Modal {
   plugin: UpdateTimeOnSavePlugin;
 
   divContainer?: HTMLDivElement;
@@ -44,7 +44,7 @@ export class UpdateAllModal extends Modal {
     wrapperBar.append(progress, fileCounter);
     wrapperBar.addClass('progress-section');
 
-    const header = createTextSpan('Updating files...');
+    const header = createTextSpan('Updating cache...');
 
     this.divContainer.replaceChildren(header, wrapperBar);
 
@@ -57,7 +57,7 @@ export class UpdateAllModal extends Modal {
         return;
       }
       updateCount(i + 1);
-      await this.plugin.handleFileChange(allMdFiles[i], 'bulk');
+      await this.plugin.populateCacheForFile(allMdFiles[i]);
     }
 
     const doneMessage = createTextSpan(
@@ -81,7 +81,7 @@ export class UpdateAllModal extends Modal {
 
     const allMdFiles = await this.plugin.getAllFilesPossiblyAffected();
 
-    header.setText(`Update all ${allMdFiles.length} files in the vault`);
+    header.setText(`Create all ${allMdFiles.length} files in the hash cache`);
 
     const div = contentEl.createDiv();
     this.divContainer = div;
@@ -89,13 +89,7 @@ export class UpdateAllModal extends Modal {
     div.append(
       div.createSpan({
         text:
-          'This will update all created and updated time on files affected by this plugin',
-      }),
-      createBr(),
-      createBr(),
-      div.createSpan({
-        text: `WARNING: this action will affect ${allMdFiles.length} in your vault. Make sure you tuned the settings correctly, and make a backup.`,
-        cls: 'update-time-on-edit--settings--warn',
+          'This will update all cache data on files affected by this plugin',
       }),
       createBr(),
       createBr(),

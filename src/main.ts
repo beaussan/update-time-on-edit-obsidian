@@ -9,6 +9,7 @@ import {
 import { isTFile } from './utils';
 import add from 'date-fns/add';
 import isAfter from 'date-fns/isAfter';
+import { sha256 } from 'js-sha256';
 
 export default class UpdateTimeOnSavePlugin extends Plugin {
   // @ts-expect-error the settings are hot loaded at init
@@ -56,6 +57,10 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return this.settings.ignoreGlobalFolder ?? [];
   }
 
+  hashString(str: string): string {
+    return sha256(str);
+  }
+
   async shouldFileBeIgnored(file: TFile): Promise<boolean> {
     if (!file.path) {
       return true;
@@ -64,9 +69,25 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
       return true;
     }
 
-    if ((await this.app.vault.read(file)).trim().length === 0) {
+    const fileContent = (await this.app.vault.read(file)).trim();
+
+    const sha = this.hashString(fileContent);
+
+    if (fileContent.length === 0) {
       return true;
     }
+
+    if (this.settings.enableExperimentalHash) {
+      const maybeHash = this.settings.fileHashMap[file.path];
+      if (maybeHash) {
+        const sha = this.hashString(fileContent);
+        if (sha === maybeHash) {
+          this.log('Ignoring file because, sha same');
+          return true;
+        }
+      }
+    }
+
     const isExcalidrawFile = this.isExcalidrawFile(file);
 
     if (isExcalidrawFile) {
@@ -108,9 +129,23 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
   }
 
   async getAllFilesPossiblyAffected() {
-    return this.app.vault
-      .getMarkdownFiles()
-      .filter((file) => !this.shouldFileBeIgnored(file));
+    const allFiles = this.app.vault.getMarkdownFiles();
+    const result = [];
+
+    for (const file of allFiles) {
+      if (!(await this.shouldFileBeIgnored(file))) {
+        result.push(file);
+      }
+    }
+
+    return result;
+  }
+
+  async populateCacheForFile(file: TFile): Promise<void> {
+    const fileContent = (await this.app.vault.read(file)).trim();
+    const sha = this.hashString(fileContent);
+    this.settings.fileHashMap[file.path] = sha;
+    await this.saveSettings();
   }
 
   async handleFileChange(
@@ -167,6 +202,7 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
         },
         { ctime: file.stat.ctime, mtime: file.stat.mtime },
       );
+      await this.populateCacheForFile(file);
     } catch (e: any) {
       if (e?.name === 'YAMLParseError') {
         const errorMessage = `Update time on edit failed
@@ -193,6 +229,29 @@ ${e.message}`;
       this.app.vault.on('modify', (file) => {
         this.log('TRIGGER FROM MODIFY');
         return this.handleFileChange(file, 'modify');
+      }),
+    );
+
+    this.registerEvent(
+      this.app.vault.on('rename', (file, oldPath) => {
+        const hash = this.settings.fileHashMap[oldPath];
+        if (!hash) {
+          return;
+        }
+        this.settings.fileHashMap[file.path] = hash;
+        delete this.settings.fileHashMap[oldPath];
+        this.saveSettings();
+      }),
+    );
+
+    this.registerEvent(
+      this.app.vault.on('delete', async (file) => {
+        const sha = this.settings.fileHashMap[file.path];
+        if (!sha) {
+          return;
+        }
+        delete this.settings.fileHashMap[file.path];
+        this.saveSettings();
       }),
     );
   }

@@ -4,6 +4,7 @@ import { FolderSuggest } from './suggesters/FolderSuggester';
 import { onlyUniqueArray } from './utils';
 import { format } from 'date-fns';
 import { UpdateAllModal } from './UpdateAllModal';
+import { UpdateAllCacheData } from './UpdateAllCacheData';
 
 export interface UpdateTimeOnEditSettings {
   dateFormat: string;
@@ -14,6 +15,9 @@ export interface UpdateTimeOnEditSettings {
   // Union because of legacy
   ignoreGlobalFolder?: string | string[];
   ignoreCreatedFolder?: string[];
+
+  enableExperimentalHash?: boolean;
+  fileHashMap: Record<string, string>;
 }
 
 export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
@@ -24,6 +28,8 @@ export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
   minMinutesBetweenSaves: 1,
   ignoreGlobalFolder: [],
   ignoreCreatedFolder: [],
+  enableExperimentalHash: false,
+  fileHashMap: {},
 };
 
 export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
@@ -65,6 +71,27 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     this.addEnableCreated();
     this.addFrontMatterCreated();
     this.addExcludedCreatedFoldersSetting();
+
+    containerEl.createEl('h2', { text: 'Experimental settings' });
+
+    new Setting(this.containerEl)
+      .setName('Enable hash matcher')
+      .setDesc(
+        'Using a hash system to prevent too many updates happening, especially with sync.',
+      )
+      .addToggle((cb) =>
+        cb
+          .setValue(this.plugin.settings.enableExperimentalHash ?? false)
+          .onChange(async (newValue) => {
+            this.plugin.settings.enableExperimentalHash = newValue;
+            await this.saveSettings();
+          }),
+      )
+      .addButton((cb) =>
+        cb.setButtonText('Fill initial cache').onClick(() => {
+          new UpdateAllCacheData(this.app, this.plugin).open();
+        }),
+      );
   }
 
   async saveSettings() {

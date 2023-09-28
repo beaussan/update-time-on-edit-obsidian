@@ -40,6 +40,7 @@
   "dependencies": {
     "@popperjs/core": "2.10.2",
     "date-fns": "2.21.1",
+    "js-sha256": "^0.10.1",
     "rxjs": "6.6.7"
   },
   "husky": {
