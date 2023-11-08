@@ -65,7 +65,13 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     if (!file.path) {
       return true;
     }
-    if (!file.path.endsWith('.md')) {
+    if (file.extension != "md") {
+      return true;
+    }
+    // Canvas files are created as 'Canvas.md',
+    // so the plugin will update "frontmatter" and break the file when it gets created
+    if(file.name == "Canvas.md")
+    {
       return true;
     }
 
