@@ -34,8 +34,12 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return new Date(input);
   }
 
-  formatDate(input: Date): string {
-    return format(input, this.settings.dateFormat);
+  formatDate(input: Date): string | number {
+    const output = format(input, this.settings.dateFormat);
+    if (/^\d+$/.test(output) && this.settings.enableNumberProperties) {
+      return parseInt(output);
+    }
+    return output;
   }
 
   async onload() {
