@@ -144,6 +144,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
             setValue(value);
             dformat.setDesc(createDoc());
             await this.saveSettings();
+            this.display();
           }),
       );
   }
@@ -163,7 +164,6 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
           .onChange(async (newValue) => {
             this.plugin.settings.enableNumberProperties = newValue;
             await this.saveSettings();
-            this.display();
           }),
       );
   }
