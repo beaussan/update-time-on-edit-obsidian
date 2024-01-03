@@ -152,10 +152,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName('Enable number property type')
       .setDesc(
-        'Assigns numbers to date properties (instead of strings) when using numeric formats like timestamps.',
-      )
-      .setDisabled(
-        /\D/.test(format(new Date(), this.plugin.settings.dateFormat)),
+        'Assigns numbers to date properties (instead of strings) when using numeric formats, like Unix timestamps.',
       )
       .addToggle((toggle) =>
         toggle
@@ -163,7 +160,6 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
           .onChange(async (newValue) => {
             this.plugin.settings.enableNumberProperties = newValue;
             await this.saveSettings();
-            this.display();
           }),
       );
   }
