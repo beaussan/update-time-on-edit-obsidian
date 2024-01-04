@@ -6,6 +6,7 @@ Here is a list of feature this plugin provides :
 - Keep in sync the `mtime` (last modified time) in a property key (default to `updated`)
 - Keep in sync the `ctime` (file creation time) in a property key (default to `created`)
 - Customize the date format, default to obsidian date format for property display
+- Supports string and number property data types, the later being useful for Unix timestamps
 - Ignore folder for all update, useful for template files
 - Ignore folder for the creation property
 - Works on mobile & desktop
