@@ -8,6 +8,7 @@ import { UpdateAllCacheData } from './UpdateAllCacheData';
 
 export interface UpdateTimeOnEditSettings {
   dateFormat: string;
+  enableNumberProperties: boolean;
   enableCreateTime: boolean;
   headerUpdated: string;
   headerCreated: string;
@@ -22,6 +23,7 @@ export interface UpdateTimeOnEditSettings {
 
 export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
   dateFormat: "yyyy-MM-dd'T'HH:mm",
+  enableNumberProperties: false,
   enableCreateTime: true,
   headerUpdated: 'updated',
   headerCreated: 'created',
@@ -50,6 +52,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     this.addExcludedFoldersSetting();
     this.addTimeBetweenUpdates();
     this.addDateFormat();
+    this.addEnableNumberProperties();
 
     new Setting(this.containerEl)
       .setName('Update all files')
@@ -140,6 +143,22 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
           .onChange(async (value) => {
             setValue(value);
             dformat.setDesc(createDoc());
+            await this.saveSettings();
+          }),
+      );
+  }
+
+  addEnableNumberProperties(): void {
+    new Setting(this.containerEl)
+      .setName('Enable number property type')
+      .setDesc(
+        'Assigns numbers to date properties (instead of strings) when using numeric formats, like Unix timestamps.',
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.enableNumberProperties)
+          .onChange(async (newValue) => {
+            this.plugin.settings.enableNumberProperties = newValue;
             await this.saveSettings();
           }),
       );
