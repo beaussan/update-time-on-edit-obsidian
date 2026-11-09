@@ -6,7 +6,7 @@ import {
   UpdateTimeOnEditSettings,
   UpdateTimeOnEditSettingsTab,
 } from './Settings';
-import { isTFile } from './utils';
+import { isTFile, matchesAnyRegex } from './utils';
 import add from 'date-fns/add';
 import isAfter from 'date-fns/isAfter';
 import { sha256 } from 'js-sha256';
@@ -61,6 +61,11 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
     return this.settings.ignoreGlobalFolder ?? [];
   }
 
+  getIgnoreRegexes(): string[] {
+    const value = this.settings.ignoreRegexPaths;
+    return Array.isArray(value) ? value : [];
+  }
+
   hashString(str: string): string {
     return sha256(str);
   }
@@ -102,6 +107,9 @@ export default class UpdateTimeOnSavePlugin extends Plugin {
 
     if (isExcalidrawFile) {
       // TODO: maybe add a setting to enable it if users want to have the keys works there
+      return true;
+    }
+    if (matchesAnyRegex(file.path, this.getIgnoreRegexes())) {
       return true;
     }
     const ignores = this.getIgnoreFolders();

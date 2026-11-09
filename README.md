@@ -9,6 +9,7 @@ Here is a list of feature this plugin provides :
 - Supports string and number property data types, the later being useful for Unix timestamps
 - Ignore folder for all update, useful for template files
 - Ignore folder for the creation property
+- Ignore files by regular expression on their full path (e.g. `(^|/)index\.md$` for every `index.md`, in any folder), for both `updated` and `created`. Case-sensitive; invalid patterns are ignored and flagged in the settings
 - Works on mobile & desktop
 
 This plugin will read the `ctime` and `mtime` from obsidian, and thus, the file system. **If file change from an external source, the header keys will be updated**.

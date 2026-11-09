@@ -1,7 +1,13 @@
-import { App, PluginSettingTab, SearchComponent, Setting } from 'obsidian';
+import {
+  App,
+  PluginSettingTab,
+  SearchComponent,
+  Setting,
+  TextComponent,
+} from 'obsidian';
 import UpdateTimeOnSavePlugin from './main';
 import { FolderSuggest } from './suggesters/FolderSuggester';
-import { onlyUniqueArray } from './utils';
+import { compileRegex, onlyUniqueArray } from './utils';
 import { format } from 'date-fns';
 import { UpdateAllModal } from './UpdateAllModal';
 import { UpdateAllCacheData } from './UpdateAllCacheData';
@@ -16,6 +22,7 @@ export interface UpdateTimeOnEditSettings {
   // Union because of legacy
   ignoreGlobalFolder?: string | string[];
   ignoreCreatedFolder?: string[];
+  ignoreRegexPaths?: string[];
 
   enableExperimentalHash?: boolean;
   fileHashMap: Record<string, string>;
@@ -30,6 +37,7 @@ export const DEFAULT_SETTINGS: UpdateTimeOnEditSettings = {
   minMinutesBetweenSaves: 1,
   ignoreGlobalFolder: [],
   ignoreCreatedFolder: [],
+  ignoreRegexPaths: [],
   enableExperimentalHash: false,
   fileHashMap: {},
 };
@@ -50,6 +58,7 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
     containerEl.createEl('h2', { text: 'Global settings' });
 
     this.addExcludedFoldersSetting();
+    this.addRegexExclusionsSetting();
     this.addTimeBetweenUpdates();
     this.addDateFormat();
     this.addEnableNumberProperties();
@@ -253,6 +262,53 @@ export class UpdateTimeOnEditSettingsTab extends PluginSettingTab {
       name: 'Folder to exclude of all updates',
       description:
         'Any file updated in this folder will not trigger an updated and created update.',
+    });
+  }
+
+  addRegexExclusionsSetting(): void {
+    const list = this.plugin.getIgnoreRegexes();
+    let input: TextComponent | undefined;
+    new Setting(this.containerEl)
+      .setName('Regular expressions to exclude of all updates')
+      .setDesc(
+        'Any file whose full path (e.g. folder/note.md) matches is excluded from updated and created updates. Case-sensitive. Example: (^|/)index\\.md$ excludes every index.md. Invalid patterns are ignored.',
+      )
+      .addText((cb) => {
+        input = cb;
+        cb.setPlaceholder('Example: (^|/)index\\.md$');
+      })
+      .addButton((cb) => {
+        cb.setIcon('plus');
+        cb.setTooltip('Add regular expression');
+        cb.onClick(async () => {
+          const pattern = input?.getValue() ?? '';
+          if (!pattern) {
+            return;
+          }
+          this.plugin.settings.ignoreRegexPaths = [...list, pattern].filter(
+            onlyUniqueArray,
+          );
+          await this.saveSettings();
+          this.display();
+        });
+      });
+
+    list.forEach((pattern) => {
+      const invalid = !compileRegex(pattern);
+      const row = new Setting(this.containerEl).setName(pattern);
+      if (invalid) {
+        row.setDesc('Invalid regular expression: this pattern is ignored.');
+        row.descEl.style.color = 'var(--text-error)';
+      }
+      row.addButton((button) =>
+        button.setButtonText('Remove').onClick(async () => {
+          this.plugin.settings.ignoreRegexPaths = list.filter(
+            (value) => value !== pattern,
+          );
+          await this.saveSettings();
+          this.display();
+        }),
+      );
     });
   }
 
